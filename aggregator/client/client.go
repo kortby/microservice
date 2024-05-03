@@ -24,7 +24,7 @@ func (c *Client) AggregateInvoice(distance types.Distance) error {
 	if err != nil {
 		return err
 	}
-	req, err := http.NewRequest("POST", c.Endpoint, bytes.NewReader(b))
+	req, err := http.NewRequest("GET", c.Endpoint, bytes.NewReader(b))
 	if err != nil {
 		return err
 	}
@@ -33,7 +33,7 @@ func (c *Client) AggregateInvoice(distance types.Distance) error {
 		return err
 	}
 	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("Service responded with non 200 status code %d", resp.StatusCode)
+		return fmt.Errorf("service responded with non 200 status code %d", resp.StatusCode)
 	}
 	return nil
 }
