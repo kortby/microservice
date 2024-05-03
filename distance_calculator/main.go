@@ -2,9 +2,14 @@ package main
 
 import (
 	"log"
+
+	"github.com/godev/tolls/aggregator/client"
 )
 
-const kafkaTopic = "obudata"
+const (
+	kafkaTopic = "obudata"
+	aggregatorEndpoint = "http://127.0.0.1:3000/aggregate"
+)
 
 func main() {
 	var (
@@ -13,7 +18,7 @@ func main() {
 	)
 	svc = NewCalculatorService()
 	svc = NewLogginMiddleware(svc)
-	kafkaConsumer, err := NewKafkaConsumer(kafkaTopic, svc)
+	kafkaConsumer, err := NewKafkaConsumer(kafkaTopic, svc, client.NewClient(aggregatorEndpoint))
 	if err != nil {
 		log.Fatal(err)
 	}

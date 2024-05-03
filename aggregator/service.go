@@ -7,7 +7,7 @@ import (
 )
 
 type Aggregator interface {
-	AggregateDistances(types.Distance) error
+	AggregateDistance(types.Distance) error
 }
 
 type Storer interface {
@@ -18,13 +18,13 @@ type InvoiceAggregator struct {
 	store Storer
 }
 
-func NewInvoiceAggregator(store Storer) *InvoiceAggregator {
+func NewInvoiceAggregator(store Storer) Aggregator {
 	return &InvoiceAggregator{
 		store: store,
 	}
 }
 
-func (i *InvoiceAggregator) AggregateDistances(distance types.Distance) error {
+func (i *InvoiceAggregator) AggregateDistance(distance types.Distance) error {
     fmt.Println("processing ..", distance)
     return i.store.Insert(distance)
 }
