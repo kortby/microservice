@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/godev/tolls/types"
+	"github.com/sirupsen/logrus"
 )
 
 const basedPrice = 4.15
@@ -29,7 +30,11 @@ func NewInvoiceAggregator(store Storer) Aggregator {
 }
 
 func (i *InvoiceAggregator) AggregateDistance(distance types.Distance) error {
-    fmt.Println("processing ..", distance)
+	logrus.WithFields(logrus.Fields{
+		"obuid":	distance.OBUID,
+		"distance": distance.Value,
+		"unix":		distance.Unix,
+	}).Info("Aggregating distance")
     return i.store.Insert(distance)
 }
 
