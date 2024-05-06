@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 
 	"github.com/godev/tolls/types"
 	"github.com/sirupsen/logrus"
@@ -41,7 +40,7 @@ func (i *InvoiceAggregator) AggregateDistance(distance types.Distance) error {
 func (i *InvoiceAggregator) CalculateInvoice(obuID int) (*types.Invoice, error) {
 	dist, err:= i.store.Get(obuID)
 	if err != nil {
-		return nil, fmt.Errorf("obuID not found %d", err)
+		return nil, err
 	}
 	inv := &types.Invoice{
 		OBUID: obuID,

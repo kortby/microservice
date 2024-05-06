@@ -47,3 +47,17 @@ protoc --go_out=. --go_opt=paths=source_relative \
        --go-grpc_out=. --go-grpc_opt=paths=source_relative \
        types/ptypes.proto
 ```
+
+
+## installing Prometheus
+```
+docker run --name prometheus -d -p 127.0.0.1:9090:9090 prom/prometheus
+```
+
+```
+github.com/prometheus/client_golang/prometheus
+```
+
+```
+../prometheus/prometheus --config.file=.config/prometheus.yml
+```

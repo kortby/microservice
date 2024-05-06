@@ -13,6 +13,7 @@ import (
 
 	"github.com/godev/tolls/aggregator/client"
 	"github.com/godev/tolls/types"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"google.golang.org/grpc"
 )
 
@@ -25,6 +26,7 @@ func main() {
 		store = NewMemoryStore()
 		svc = NewInvoiceAggregator(store)
 	)
+	svc = NewMetricsMiddleware(svc)
 	svc = NewLogginMiddleware(svc)
 
 	go makeGRPCTransport(*grpcListenAddr, svc)
@@ -60,6 +62,7 @@ func makeHTTPTransport(listenAddr string, svc Aggregator) {
 	fmt.Println("HTTP transport running on port ", listenAddr)
 	http.HandleFunc("/aggregate", handleAggregate(svc))
 	http.HandleFunc("/invoice", handleGetInvoice(svc))
+	http.Handle("/metrics", promhttp.Handler())
 	log.Fatal(http.ListenAndServe(listenAddr, nil))
 }
 
