@@ -35,7 +35,6 @@ func main() {
 	svc = NewLogginMiddleware(svc)
 
 	go makeGRPCTransport(grpcListenAddr, svc)
-	time.Sleep(time.Second * 3)
 	c, err := client.NewGRCPClient(grpcListenAddr)
 	if err != nil {
 		log.Fatal(err)
@@ -77,8 +76,10 @@ func makeGRPCTransport(listenAddr string, svc Aggregator) error {
 func makeHTTPTransport(listenAddr string, svc Aggregator) {
 	aggMatricsHandler := NewHTTPMetricHandler("aggregate")
 	invMatricsHandler := NewHTTPMetricHandler("invoice")
-	http.HandleFunc("/aggregate", aggMatricsHandler.instrument(handleAggregate(svc)))
-	http.HandleFunc("/invoice", invMatricsHandler.instrument(handleGetInvoice(svc)))
+	aggregateHandler := makeHTTPHandlerFunc(aggMatricsHandler.instrument((handleAggregate(svc))))
+	invoiceHandler := makeHTTPHandlerFunc(invMatricsHandler.instrument((handleGetInvoice(svc))))
+	http.HandleFunc("/invoice", invoiceHandler)
+	http.HandleFunc("/aggregate", aggregateHandler)
 	http.Handle("/metrics", promhttp.Handler())
 	fmt.Println("HTTP transport running on port ", listenAddr)
 	log.Fatal(http.ListenAndServe(listenAddr, nil))
