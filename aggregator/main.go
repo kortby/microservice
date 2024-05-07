@@ -8,30 +8,36 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"os"
 	"strconv"
 	"time"
 
 	"github.com/godev/tolls/aggregator/client"
 	"github.com/godev/tolls/types"
+	"github.com/joho/godotenv"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"google.golang.org/grpc"
 )
 
 func main() {
-	httpListenAddr := flag.String("httpAddr", ":3000", "listen address of the HTTP transport handler server")
-	grpcListenAddr := flag.String("grpcAddr", ":3001", "listen address of the GRPC transport handler server")
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatal("Error loading .env file")
+	}
 	flag.Parse()
 
 	var (
-		store = NewMemoryStore()
+		store = makeStore()
 		svc = NewInvoiceAggregator(store)
+		grpcListenAddr= os.Getenv("AGG_GRPC_ENDPOINT")
+		httpListenAddr= os.Getenv("AGG_HTTP_ENDPOINT")
 	)
 	svc = NewMetricsMiddleware(svc)
 	svc = NewLogginMiddleware(svc)
 
-	go makeGRPCTransport(*grpcListenAddr, svc)
+	go makeGRPCTransport(grpcListenAddr, svc)
 	time.Sleep(time.Second * 3)
-	c, err := client.NewGRCPClient(*grpcListenAddr)
+	c, err := client.NewGRCPClient(grpcListenAddr)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -42,7 +48,18 @@ func main() {
 	}); err != nil {
 		log.Fatal(err)
 	}
-	makeHTTPTransport(*httpListenAddr, svc)
+	makeHTTPTransport(httpListenAddr, svc)
+}
+
+func makeStore() Storer {
+	storeType := os.Getenv("AGG_STORE_TYPE")
+	switch storeType {
+	case "memory":
+		return NewMemoryStore()
+	default:
+		log.Fatalf("invalid store %s", storeType)
+		return nil
+	}
 }
 
 func makeGRPCTransport(listenAddr string, svc Aggregator) error {
@@ -68,7 +85,10 @@ func makeHTTPTransport(listenAddr string, svc Aggregator) {
 
 func handleGetInvoice(svc Aggregator)  http.HandlerFunc {
 	return func (w http.ResponseWriter, r *http.Request) {
-
+		if r.Method != "GET" {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "Method not supported"})
+			return
+		}
 		values, ok := r.URL.Query()["obu"]
 		if !ok {
 			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "missing obu id"})
@@ -91,6 +111,10 @@ func handleGetInvoice(svc Aggregator)  http.HandlerFunc {
 
 func handleAggregate(svc Aggregator) http.HandlerFunc {
 	return func (w http.ResponseWriter, r *http.Request) {
+		if r.Method != "POST" {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "Method Post not supported"})
+			return
+		}
 		var distance types.Distance
 		if err := json.NewDecoder(r.Body).Decode(&distance); err != nil {
 			writeJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
