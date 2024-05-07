@@ -37,6 +37,7 @@ coverage.txt
 
 # Built files
 /build
+/data
 
 # Misc
 .DS_Store
