@@ -2,6 +2,7 @@ package aggservice
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/godev/tolls/types"
 )
@@ -25,7 +26,7 @@ func NewBasicService(store Storer) Service {
 }
 
 func (svc *BasicService) Aggregate(_ context.Context, dist types.Distance) error {
-	
+	fmt.Println("Aggregate using go-kit")
     return svc.store.Insert(dist)
 }
 
@@ -42,7 +43,7 @@ func (svc *BasicService) Calculate(_ context.Context, obuID int) (*types.Invoice
 	return inv, nil
 }
 
-func NewAggregatorService() Service {
+func New() Service {
 	var svc Service
 	svc = NewBasicService(NewMemoryStore())
 	svc = NewLogginMiddleware()(svc)

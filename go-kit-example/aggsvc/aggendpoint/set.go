@@ -2,10 +2,16 @@ package aggendpoint
 
 import (
 	"context"
+	"time"
 
+	"github.com/go-kit/kit/circuitbreaker"
 	"github.com/go-kit/kit/endpoint"
+	"github.com/go-kit/kit/ratelimit"
 	"github.com/godev/tolls/go-kit-example/aggsvc/aggservice"
 	"github.com/godev/tolls/types"
+	"github.com/sony/gobreaker"
+	"golang.org/x/time/rate"
+	"github.com/go-kit/kit/log"
 )
 
 type AggregateRequest struct {
@@ -78,5 +84,36 @@ func MakeConcatEndpoint(s aggservice.Service) endpoint.Endpoint {
 			TotalAmount: inv.TotalAmount,
 			Err: err,
 		}, nil
+	}
+}
+
+func New(svc aggservice.Service, logger log.Logger) Set {
+	var aggEndpoint endpoint.Endpoint
+	{
+		aggEndpoint = MakeAggregateEndpoint(svc)
+		// Agg is limited to 1 request per second with burst of 1 request.
+		// Note, rate is defined as a time interval between requests.
+		aggEndpoint = ratelimit.NewErroringLimiter(rate.NewLimiter(rate.Every(time.Second), 1))(aggEndpoint)
+		aggEndpoint = circuitbreaker.Gobreaker(gobreaker.NewCircuitBreaker(gobreaker.Settings{}))(aggEndpoint)
+		
+		// aggEndpoint = LoggingMiddleware(log.With(logger, "method", "Aggregate"))(aggEndpoint)
+		// aggEndpoint = InstrumentingMiddleware(duration.With("method", "Aggregate"))(aggEndpoint)
+	}
+
+
+	var calcEndpoint endpoint.Endpoint
+	{
+		calcEndpoint = MakeConcatEndpoint(svc)
+		// Concat is limited to 1 request per second with burst of 100 requests.
+		// Note, rate is defined as a number of requests per second.
+		calcEndpoint = ratelimit.NewErroringLimiter(rate.NewLimiter(rate.Limit(1), 100))(calcEndpoint)
+		calcEndpoint = circuitbreaker.Gobreaker(gobreaker.NewCircuitBreaker(gobreaker.Settings{}))(calcEndpoint)
+		
+		// calcEndpoint = LoggingMiddleware(log.With(logger, "method", "Calc"))(calcEndpoint)
+		// calcEndpoint = InstrumentingMiddleware(duration.With("method", "Calc"))(calcEndpoint)
+	}
+	return Set{
+		AggregateEndpoint:    aggEndpoint,
+		CalculateEndpoint: calcEndpoint,
 	}
 }
